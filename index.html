@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Death Predictor - Grim Feast</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f0f0f, #1e1e1e);
+      color: #eee;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: #222;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 0 25px rgba(0,0,0,0.6);
+      max-width: 600px;
+      width: 90%;
+      text-align: center;
+      transition: all 0.4s ease;
+    }
+    .hidden { display: none; }
+    .header .title {
+      font-size: 1.8rem;
+      margin-bottom: 5px;
+      color: crimson;
+      text-shadow: 0 0 8px red;
+    }
+    .subtitle {
+      font-style: italic;
+      color: #aaa;
+    }
+    .form-section {
+      margin: 20px 0;
+      text-align: left;
+    }
+    .section-title {
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+      color: #ff4444;
+    }
+    .form-group {
+      margin-bottom: 12px;
+    }
+    label { font-weight: bold; display: block; }
+    select, input[type=number] {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #555;
+      background: #333;
+      color: #eee;
+    }
+    .food-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .food-item input { display: none; }
+    .food-card {
+      background: #333;
+      padding: 10px;
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.2s, border 0.2s;
+    }
+    .food-emoji { font-size: 1.8rem; }
+    .food-item input:checked + .food-card {
+      border: 2px solid crimson;
+      transform: scale(1.05);
+      box-shadow: 0 0 10px crimson;
+    }
+    .predict-btn, .continue-btn, .restart-btn {
+      background: crimson;
+      color: #fff;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background 0.3s;
+    }
+    .predict-btn:hover, .continue-btn:hover, .restart-btn:hover {
+      background: darkred;
+    }
+    .error-message {
+      display: none;
+      color: #ff4444;
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+    .results-title {
+      color: crimson;
+      text-shadow: 0 0 6px red;
+      margin-bottom: 15px;
+    }
+    .prediction {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+    }
+    /* Animation phases */
+    .animation-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .phase { display: none; }
+    .phase.active { display: block; }
+    .reaper-scene, .death-scene, .coffin-scene, .final-scene {
+      margin: 25px 0;
+      animation: fadeIn 1s ease;
+    }
+    .reaper-emoji, .scythe-emoji, .coffin-emoji, .skull-emoji, .tombstone, .final-tombstone {
+      font-size: 3rem;
+      margin: 10px;
+    }
+    .floating-ghosts {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .ghost {
+      position: absolute;
+      font-size: 2rem;
+      animation: float 6s linear infinite;
+      opacity: 0.6;
+    }
+    .ghost:nth-child(1) { top: 20%; left: 10%; animation-delay: 0s; }
+    .ghost:nth-child(2) { top: 50%; left: 30%; animation-delay: 2s; }
+    .ghost:nth-child(3) { top: 70%; left: 70%; animation-delay: 4s; }
+    .ghost:nth-child(4) { top: 40%; left: 80%; animation-delay: 1s; }
+    .ghost:nth-child(5) { top: 10%; left: 60%; animation-delay: 3s; }
+    @keyframes float {
+      0% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(10deg); }
+      100% { transform: translateY(0) rotate(0deg); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Main Form -->
+    <div id="main-form" class="container">
+      <header class="header">
+        <h1 class="title">💀 GRIM FEAST PREDICTOR 💀</h1>
+        <p class="subtitle">Discover your fate through your food choices...</p>
+      </header>
+
+      <form id="predictor-form" class="form">
+        <div class="form-section">
+          <h2 class="section-title">👤 Personal Information</h2>
+          <div class="form-group">
+            <label for="gender">Gender:</label>
+            <select id="gender" required>
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="age">Age:</label>
+            <input type="number" id="age" min="1" max="120" required>
+          </div>
+        </div>
+
+        <!-- Food Choices -->
+        <div class="form-section">
+          <h2 class="section-title">🍽️ Choose Your Feast (Select 4-5 items)</h2>
+          <p class="instruction">Choose wisely... your selections will determine your fate</p>
+          <div class="food-grid" id="food-choices">
+            <label class="food-item"><input type="checkbox" data-toxic="7" data-energy="6"><div class="food-card"><div class="food-emoji">🍕</div><span>Pizza</span></div></label>
+            <label class="food-item"><input type="checkbox" data-toxic="1" data-energy="8"><div class="food-card"><div class="food-emoji">🥗</div><span>Salad</span></div></label>
+            <label class="food-item"><input type="checkbox" data-toxic="8" data-energy="5"><div class="food-card"><div class="food-emoji">🍔</div><span>Burger</span></div></label>
+            <label class="food-item"><input type="checkbox" data-toxic="2" data-energy="9"><div class="food-card"><div class="food-emoji">🍣</div><span>Sushi</span></div></label>
+            <label class="food-item"><input type="checkbox" data-toxic="9" data-energy="3"><div class="food-card"><div class="food-emoji">🍩</div><span>Donut</span></div></label>
+            <label class="food-item"><input type="checkbox" data-toxic="0" data-energy="10"><div class="food-card"><div class="food-emoji">🍎</div><span>Apple</span></div></label>
+            <label class="food-item"><input type="checkbox" data-toxic="8" data-energy="4"><div class="food-card"><div class="food-emoji">🍟</div><span>Fries</span></div></label>
+            <label class="food-item"><input type="checkbox" data-toxic="0" data-energy="9"><div class="food-card"><div class="food-emoji">🥦</div><span>Broccoli</span></div></label>
+            <label class="food-item"><input type="checkbox" data-toxic="6" data-energy="5"><div class="food-card"><div class="food-emoji">🍦</div><span>Ice Cream</span></div></label>
+            <label class="food-item"><input type="checkbox" data-toxic="5" data-energy="7"><div class="food-card"><div class="food-emoji">🥩</div><span>Steak</span></div></label>
+          </div>
+          <div id="selection-error" class="error-message">Please select 4-5 food items</div>
+        </div>
+        <button type="submit" class="predict-btn">🔮 PREDICT MY DOOM 🔮</button>
+      </form>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="container hidden">
+      <h2 class="results-title">⚰️ YOUR FATE IS SEALED ⚰️</h2>
+      <div id="prediction-text" class="prediction"></div>
+      <div class="death-details">
+        <p id="age-at-death"></p>
+        <p id="chosen-foods"></p>
+      </div>
+      <button id="continue-btn" class="continue-btn">Accept Your Fate ⚰️</button>
+    </div>
+
+    <!-- Grim Reaper Animation -->
+    <div id="animation-container" class="animation-container hidden">
+      <div id="reaper-phase" class="phase active">
+        <div class="reaper-scene">
+          <div class="reaper-emoji">💀</div>
+          <div class="scythe-emoji">🗡️</div>
+          <p class="phase-text">The Grim Reaper Approaches...</p>
+        </div>
+      </div>
+      <div id="death-phase" class="phase">
+        <div class="death-scene">
+          <div class="coffin-emoji">⚰️</div>
+          <div class="skull-emoji">💀</div>
+          <p class="death-text">YOU HAVE BEEN SLAIN!</p>
+          <p class="death-subtext">Your feast has sealed your doom...</p>
+        </div>
+      </div>
+      <div id="coffin-phase" class="phase">
+        <div class="coffin-scene">
+          <div class="falling-coffin">⚰️</div>
+          <div class="grave-scene">
+            <div class="tombstone">🪦</div>
+            <p class="rip-text">R.I.P</p>
+            <p class="epitaph">Victim of Poor Food Choices</p>
+          </div>
+        </div>
+      </div>
+      <div id="final-phase" class="phase">
+        <div class="final-scene">
+          <div class="final-tombstone">🪦</div>
+          <h2 class="game-over">GAME OVER</h2>
+          <p class="final-text">Your feast has determined your fate</p>
+          <div class="final-emojis"><span>💀</span><span>⚰️</span><span>🪦</span></div>
+          <button id="restart-btn" class="restart-btn">Rise from the Dead (Play Again)</button>
+        </div>
+      </div>
+      <div class="floating-ghosts">
+        <div class="ghost">👻</div><div class="ghost">👻</div><div class="ghost">👻</div><div class="ghost">👻</div><div class="ghost">👻</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("predictor-form");
+    const results = document.getElementById("results");
+    const mainForm = document.getElementById("main-form");
+    const predictionText = document.getElementById("prediction-text");
+    const ageAtDeath = document.getElementById("age-at-death");
+    const chosenFoods = document.getElementById("chosen-foods");
+    const selectionError = document.getElementById("selection-error");
+    const continueBtn = document.getElementById("continue-btn");
+    const restartBtn = document.getElementById("restart-btn");
+    const animationContainer = document.getElementById("animation-container");
+
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const gender = document.getElementById("gender").value;
+      const age = parseInt(document.getElementById("age").value);
+      const selected = [...document.querySelectorAll("#food-choices input:checked")];
+
+      if(selected.length < 4 || selected.length > 5){
+        selectionError.style.display = "block";
+        return;
+      }
+      selectionError.style.display = "none";
+
+      // base life expectancy
+      let expectancy = gender === "male" ? 75 : (gender === "female" ? 80 : 78);
+
+      let toxic = 0, energy = 0;
+      selected.forEach(item => {
+        toxic += parseInt(item.dataset.toxic);
+        energy += parseInt(item.dataset.energy);
+      });
+
+      let yearsChange = Math.floor((energy - toxic) / 2);
+      let yearsLeft = (expectancy - age) + yearsChange;
+      if(yearsLeft < 0) yearsLeft = 0;
+
+      predictionText.textContent = `You have approximately ${yearsLeft} years left before your demise.`;
+      ageAtDeath.textContent = `Predicted Age at Death: ${age + yearsLeft}`;
+      chosenFoods.textContent = `Your Feast: ${selected.map(f => f.value).join(", ")}`;
+
+      mainForm.classList.add("hidden");
+      results.classList.remove("hidden");
+    });
+
+    continueBtn.addEventListener("click", () => {
+      results.classList.add("hidden");
+      animationContainer.classList.remove("hidden");
+
+      let phases = ["reaper-phase","death-phase","coffin-phase","final-phase"];
+      let idx = 0;
+      function nextPhase(){
+        document.getElementById(phases[idx]).classList.remove("active");
+        idx++;
+        if(idx < phases.length){
+          document.getElementById(phases[idx]).classList.add("active");
+          setTimeout(nextPhase, 3000);
+        }
+      }
+      setTimeout(nextPhase, 3000);
+    });
+
+    restartBtn.addEventListener("click", () => {
+      animationContainer.classList.add("hidden");
+      document.querySelectorAll(".phase").forEach(p => p.classList.remove("active"));
+      document.getElementById("reaper-phase").classList.add("active");
+      mainForm.classList.remove("hidden");
+      form.reset();
+    });
+  </script>
+</body>
+</html>
